@@ -2,6 +2,7 @@
 FastAPI HR Onboarding System - Async Main Application
 """
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -32,6 +33,15 @@ app = FastAPI(
     title="HR Onboarding System",
     version="2.0.0",
     description="Async HR Onboarding System with FastAPI and SQLModel"
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Create upload directory
@@ -85,8 +95,8 @@ async def register_user(
     """Register new user (HR only)"""
     # Check if user already exists
     statement = select(UserModel).where(UserModel.email == user_data.email)
-    result = await session.exec(statement)
-    existing_user = result.first()
+    result = await session.execute(statement)
+    existing_user = result.scalar_one_or_none()
     
     if existing_user:
         raise HTTPException(
@@ -126,16 +136,16 @@ async def get_dashboard(
     if role.lower() == "hr":
         # HR Dashboard
         employees_stmt = select(UserModel).where(UserModel.role == UserRole.EMPLOYEE)
-        employees_result = await session.exec(employees_stmt)
-        total_employees = employees_result.all()
+        employees_result = await session.execute(employees_stmt)
+        total_employees = employees_result.scalars().all()
         
         pending_tasks_stmt = select(EmployeeTaskModel).where(EmployeeTaskModel.status == TaskStatus.PENDING)
-        pending_tasks_result = await session.exec(pending_tasks_stmt)
-        pending_tasks = pending_tasks_result.all()
+        pending_tasks_result = await session.execute(pending_tasks_stmt)
+        pending_tasks = pending_tasks_result.scalars().all()
         
         pending_docs_stmt = select(DocumentModel).where(DocumentModel.verification_status == VerificationStatus.PENDING)
-        pending_docs_result = await session.exec(pending_docs_stmt)
-        pending_documents = pending_docs_result.all()
+        pending_docs_result = await session.execute(pending_docs_stmt)
+        pending_documents = pending_docs_result.scalars().all()
         
         return {
             "role": "hr",
@@ -148,8 +158,8 @@ async def get_dashboard(
     elif role.lower() == "employee":
         # Employee Dashboard
         user_tasks_stmt = select(EmployeeTaskModel).where(EmployeeTaskModel.employee_id == current_user.id)
-        user_tasks_result = await session.exec(user_tasks_stmt)
-        user_tasks = user_tasks_result.all()
+        user_tasks_result = await session.execute(user_tasks_stmt)
+        user_tasks = user_tasks_result.scalars().all()
         
         completed_tasks = [task for task in user_tasks if task.status == TaskStatus.COMPLETED]
         pending_tasks = [task for task in user_tasks if task.status == TaskStatus.PENDING]
@@ -175,15 +185,15 @@ async def get_all_employees(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     employees_stmt = select(UserModel).where(UserModel.role == UserRole.EMPLOYEE)
-    employees_result = await session.exec(employees_stmt)
-    employees = employees_result.all()
+    employees_result = await session.execute(employees_stmt)
+    employees = employees_result.scalars().all()
     
     employee_data = []
     for employee in employees:
         # Get task statistics
         tasks_stmt = select(EmployeeTaskModel).where(EmployeeTaskModel.employee_id == employee.id)
-        tasks_result = await session.exec(tasks_stmt)
-        tasks = tasks_result.all()
+        tasks_result = await session.execute(tasks_stmt)
+        tasks = tasks_result.scalars().all()
         
         completed = len([t for t in tasks if t.status == TaskStatus.COMPLETED])
         total = len(tasks)
@@ -218,21 +228,21 @@ async def manage_employee(
         UserModel.name.ilike(f"%{employee_name}%"), 
         UserModel.role == UserRole.EMPLOYEE
     )
-    employee_result = await session.exec(employee_stmt)
-    employee = employee_result.first()
+    employee_result = await session.execute(employee_stmt)
+    employee = employee_result.scalar_one_or_none()
     
     if not employee:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
     
     # Get employee's tasks
     tasks_stmt = select(EmployeeTaskModel).where(EmployeeTaskModel.employee_id == employee.id)
-    tasks_result = await session.exec(tasks_stmt)
-    tasks = tasks_result.all()
+    tasks_result = await session.execute(tasks_stmt)
+    tasks = tasks_result.scalars().all()
     
     # Get employee's documents
     docs_stmt = select(DocumentModel).where(DocumentModel.employee_id == employee.id)
-    docs_result = await session.exec(docs_stmt)
-    documents = docs_result.all()
+    docs_result = await session.execute(docs_stmt)
+    documents = docs_result.scalars().all()
     
     return {
         "employee": {
@@ -280,8 +290,8 @@ async def assign_task(
         EmployeeTaskModel.employee_id == employee_id,
         EmployeeTaskModel.task_id == task_id
     )
-    existing_result = await session.exec(existing_stmt)
-    existing = existing_result.first()
+    existing_result = await session.execute(existing_stmt)
+    existing = existing_result.scalar_one_or_none()
     
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Task already assigned")
@@ -313,13 +323,13 @@ async def get_documents(
     if role.lower() == "hr":
         # HR sees all documents
         docs_stmt = select(DocumentModel)
-        docs_result = await session.exec(docs_stmt)
-        documents = docs_result.all()
+        docs_result = await session.execute(docs_stmt)
+        documents = docs_result.scalars().all()
     else:
         # Employee sees only their documents
         docs_stmt = select(DocumentModel).where(DocumentModel.employee_id == current_user.id)
-        docs_result = await session.exec(docs_stmt)
-        documents = docs_result.all()
+        docs_result = await session.execute(docs_stmt)
+        documents = docs_result.scalars().all()
     
     return {
         "documents": [
@@ -404,8 +414,8 @@ async def get_tasks(
     if role.lower() == "hr":
         # HR sees all tasks
         tasks_stmt = select(TaskModel)
-        tasks_result = await session.exec(tasks_stmt)
-        tasks = tasks_result.all()
+        tasks_result = await session.execute(tasks_stmt)
+        tasks = tasks_result.scalars().all()
         
         return {
             "tasks": [
@@ -422,8 +432,8 @@ async def get_tasks(
     else:
         # Employee sees assigned tasks
         employee_tasks_stmt = select(EmployeeTaskModel).where(EmployeeTaskModel.employee_id == current_user.id)
-        employee_tasks_result = await session.exec(employee_tasks_stmt)
-        employee_tasks = employee_tasks_result.all()
+        employee_tasks_result = await session.execute(employee_tasks_stmt)
+        employee_tasks = employee_tasks_result.scalars().all()
         
         task_data = []
         for emp_task in employee_tasks:
@@ -483,8 +493,8 @@ async def get_training_modules(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     modules_stmt = select(TrainingModuleModel).where(TrainingModuleModel.is_active == True)
-    modules_result = await session.exec(modules_stmt)
-    modules = modules_result.all()
+    modules_result = await session.execute(modules_stmt)
+    modules = modules_result.scalars().all()
     
     if role.lower() == "employee":
         # Get employee's progress for each module
@@ -494,8 +504,8 @@ async def get_training_modules(
                 EmployeeTrainingModel.employee_id == current_user.id,
                 EmployeeTrainingModel.training_module_id == module.id
             )
-            progress_result = await session.exec(progress_stmt)
-            progress = progress_result.first()
+            progress_result = await session.execute(progress_stmt)
+            progress = progress_result.scalar_one_or_none()
             
             progress_data.append({
                 "id": module.id,
