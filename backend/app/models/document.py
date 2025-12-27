@@ -27,7 +27,5 @@ class DocumentModel(SQLModel, table=True):
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
     task_id: Optional[str] = Field(foreign_key="tasks.id")
     
-    # Relationships
-    employee: "UserModel" = Relationship(back_populates="documents")
-    verifier: Optional["UserModel"] = Relationship(back_populates="verified_documents")
+    # Simplified relationships
     related_task: Optional["TaskModel"] = Relationship(back_populates="documents")

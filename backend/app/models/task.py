@@ -43,6 +43,5 @@ class EmployeeTaskModel(SQLModel, table=True):
     assigned_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
     
-    # Relationships
-    employee: "UserModel" = Relationship(back_populates="assigned_tasks")
+    # Simplified relationships
     task: TaskModel = Relationship(back_populates="employee_assignments")

@@ -68,8 +68,8 @@ def verify_token(token: str) -> dict:
 async def authenticate_user(session: AsyncSession, email: str, password: str) -> Optional[UserModel]:
     """Authenticate user with email and password"""
     statement = select(UserModel).where(UserModel.email == email, UserModel.is_active == True)
-    result = await session.exec(statement)
-    user = result.first()
+    result = await session.execute(statement)
+    user = result.scalar_one_or_none()
     
     if not user or not verify_password(password, user.password_hash):
         return None
@@ -92,8 +92,8 @@ async def get_current_user(
         )
     
     statement = select(UserModel).where(UserModel.id == user_id, UserModel.is_active == True)
-    result = await session.exec(statement)
-    user = result.first()
+    result = await session.execute(statement)
+    user = result.scalar_one_or_none()
     
     if user is None:
         raise HTTPException(

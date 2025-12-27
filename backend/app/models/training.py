@@ -41,6 +41,5 @@ class EmployeeTrainingModel(SQLModel, table=True):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     
-    # Relationships
-    employee: "UserModel" = Relationship(back_populates="training_progress")
+    # Simplified relationships
     training_module: TrainingModuleModel = Relationship(back_populates="employee_progress")

@@ -22,10 +22,6 @@ class UserModel(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
-    # Relationships
+    # Simplified relationships - only the ones that don't cause conflicts
     created_tasks: List["TaskModel"] = Relationship(back_populates="creator")
-    assigned_tasks: List["EmployeeTaskModel"] = Relationship(back_populates="employee")
-    documents: List["DocumentModel"] = Relationship(back_populates="employee")
-    verified_documents: List["DocumentModel"] = Relationship(back_populates="verifier")
-    training_progress: List["EmployeeTrainingModel"] = Relationship(back_populates="employee")
     created_training_modules: List["TrainingModuleModel"] = Relationship(back_populates="creator")
