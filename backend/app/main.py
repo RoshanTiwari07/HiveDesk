@@ -4,11 +4,12 @@ FastAPI HR Onboarding System - Async Main Application
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from fastapi.responses import HTMLResponse
+# from scalar_fastapi import get_scalar_api_reference
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime, timedelta
-import os
 import aiofiles
 from pathlib import Path
 
@@ -18,9 +19,8 @@ from .models import (
     TrainingModuleModel, EmployeeTrainingModel
 )
 from .schemas import (
-    UserCreateSchema, UserResponseSchema, UserLoginResponseSchema,
-    TaskResponseSchema, EmployeeTaskResponseSchema, DocumentResponseSchema,
-    DocumentUploadResponseSchema, TrainingModuleResponseSchema
+    UserCreateSchema, UserResponseSchema, UserLoginSchema, UserLoginResponseSchema,
+    DocumentUploadResponseSchema
 )
 from .core.enums import UserRole, TaskStatus, VerificationStatus, DocumentType
 from .auth import (
@@ -58,15 +58,24 @@ async def on_startup():
     await create_db_and_tables()
 
 
+# Scalar API Documentation (temporarily disabled)
+# @app.get("/scalar", include_in_schema=False, response_class=HTMLResponse)
+# def get_scalar_docs():
+#     """Scalar API documentation endpoint"""
+#     return get_scalar_api_reference(
+#         openapi_url=app.openapi_url,
+#         title="HR Onboarding System API",
+#     )
+
+
 # Authentication endpoints
 @app.post("/auth/login", response_model=UserLoginResponseSchema)
 async def login(
-    email: str = Form(...),
-    password: str = Form(...),
+    login_data: UserLoginSchema,
     session: AsyncSession = Depends(get_async_session)
 ):
     """Login endpoint"""
-    user = await authenticate_user(session, email, password)
+    user = await authenticate_user(session, login_data.email, login_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -367,7 +376,6 @@ async def upload_document(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid document type")
     
     # Create file path
-    file_extension = Path(file.filename).suffix
     filename = f"{current_user.id}_{doc_type.value}_{file.filename}"
     file_path = UPLOAD_DIR / filename
     
@@ -376,7 +384,7 @@ async def upload_document(
         async with aiofiles.open(file_path, 'wb') as f:
             content = await file.read()
             await f.write(content)
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="File upload failed")
     
     # Save document metadata
@@ -492,7 +500,7 @@ async def get_training_modules(
     if not verify_user_access(name, role, current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
-    modules_stmt = select(TrainingModuleModel).where(TrainingModuleModel.is_active == True)
+    modules_stmt = select(TrainingModuleModel).where(TrainingModuleModel.is_active)
     modules_result = await session.execute(modules_stmt)
     modules = modules_result.scalars().all()
     

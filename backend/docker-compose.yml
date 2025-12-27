@@ -16,10 +16,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - hr_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   # FastAPI Application
   backend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
     container_name: hr_backend
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:roshan@postgres:5432/hr_onboarding_system
@@ -30,11 +41,22 @@ services:
       - "8000:8000"
     volumes:
       - ./uploads:/app/uploads
-      - .:/app
+      - ./app:/app/app
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - hr_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+networks:
+  hr_network:
+    driver: bridge
 
 volumes:
   postgres_data:
