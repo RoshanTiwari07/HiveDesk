@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
 from fastapi.responses import HTMLResponse
 # from scalar_fastapi import get_scalar_api_reference
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from typing import Optional
@@ -54,8 +55,65 @@ security = HTTPBearer()
 
 @app.on_event("startup")
 async def on_startup():
-    """Create database tables on startup"""
+    """Create database tables and default users on startup"""
+    from .models.user import UserModel
+    from .core.enums import UserRole
+    from .auth import get_password_hash
+    from .database import AsyncSessionLocal
+    
+    # Create tables
     await create_db_and_tables()
+    
+    # Create default users if they don't exist
+    async with AsyncSessionLocal() as session:
+        # Check if HR user exists
+        hr_stmt = select(UserModel).where(UserModel.email == "john.hr@company.com")
+        result = await session.execute(hr_stmt)
+        hr_exists = result.scalar_one_or_none()
+        
+        if not hr_exists:
+            print("\n" + "="*50)
+            print("🔧 Creating default users...")
+            print("="*50)
+            
+            # Create HR user
+            hr_user = UserModel(
+                name="John HR",
+                email="john.hr@company.com",
+                password_hash=get_password_hash("password123"),
+                role=UserRole.HR
+            )
+            session.add(hr_user)
+            
+            # Create sample employees
+            employees = [
+                ("Jane Employee", "jane.employee@company.com"),
+                ("Bob Employee", "bob.employee@company.com"),
+                ("Alice Employee", "alice.employee@company.com")
+            ]
+            
+            for name, email in employees:
+                employee = UserModel(
+                    name=name,
+                    email=email,
+                    password_hash=get_password_hash("password123"),
+                    role=UserRole.EMPLOYEE
+                )
+                session.add(employee)
+            
+            await session.commit()
+            print("\n✅ Default users created successfully!")
+            print("\n📋 Test Credentials:")
+            print("   HR User:")
+            print("   └─ Email: john.hr@company.com")
+            print("   └─ Password: password123")
+            print("\n   Employees:")
+            print("   └─ jane.employee@company.com / password123")
+            print("   └─ bob.employee@company.com / password123")
+            print("   └─ alice.employee@company.com / password123")
+            print("="*50 + "\n")
+        else:
+            print("✓ Default users already exist, skipping creation.")
 
 
 # Scalar API Documentation (temporarily disabled)
@@ -95,7 +153,7 @@ async def login(
     )
 
 
-@app.post("/auth/register", dependencies=[Depends(require_role(UserRole.HR))])
+@app.post("/auth/register", response_model=UserResponseSchema, dependencies=[Depends(require_role(UserRole.HR))])
 async def register_user(
     user_data: UserCreateSchema,
     session: AsyncSession = Depends(get_async_session),
@@ -127,7 +185,7 @@ async def register_user(
     await session.commit()
     await session.refresh(db_user)
     
-    return {"message": "User created successfully", "user_id": db_user.id}
+    return UserResponseSchema.from_orm(db_user)
 
 
 # Dashboard endpoints
@@ -220,11 +278,11 @@ async def get_all_employees(
     return {"employees": employee_data}
 
 
-@app.get("/{name}/{role}/manage/{employee_name}", dependencies=[Depends(require_role(UserRole.HR))])
+@app.get("/{name}/{role}/manage/{employee_id}", dependencies=[Depends(require_role(UserRole.HR))])
 async def manage_employee(
     name: str,
     role: str,
-    employee_name: str,
+    employee_id: str,
     session: AsyncSession = Depends(get_async_session),
     current_user: UserModel = Depends(get_current_user)
 ):
@@ -232,15 +290,10 @@ async def manage_employee(
     if not verify_user_access(name, role, current_user):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
-    # Find employee
-    employee_stmt = select(UserModel).where(
-        UserModel.name.ilike(f"%{employee_name}%"), 
-        UserModel.role == UserRole.EMPLOYEE
-    )
-    employee_result = await session.execute(employee_stmt)
-    employee = employee_result.scalar_one_or_none()
+    # Find employee by ID (secure)
+    employee = await session.get(UserModel, employee_id)
     
-    if not employee:
+    if not employee or employee.role != UserRole.EMPLOYEE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
     
     # Get employee's tasks
@@ -281,12 +334,15 @@ async def manage_employee(
     }
 
 
+class AssignTaskRequest(BaseModel):
+    employee_id: str
+    task_id: str
+
 @app.post("/{name}/{role}/assign-task", dependencies=[Depends(require_role(UserRole.HR))])
 async def assign_task(
     name: str,
     role: str,
-    employee_id: str = Form(...),
-    task_id: str = Form(...),
+    request_data: AssignTaskRequest,
     session: AsyncSession = Depends(get_async_session),
     current_user: UserModel = Depends(get_current_user)
 ):
@@ -296,8 +352,8 @@ async def assign_task(
     
     # Check if assignment already exists
     existing_stmt = select(EmployeeTaskModel).where(
-        EmployeeTaskModel.employee_id == employee_id,
-        EmployeeTaskModel.task_id == task_id
+        EmployeeTaskModel.employee_id == request_data.employee_id,
+        EmployeeTaskModel.task_id == request_data.task_id
     )
     existing_result = await session.execute(existing_stmt)
     existing = existing_result.scalar_one_or_none()
@@ -307,8 +363,8 @@ async def assign_task(
     
     # Create assignment
     assignment = EmployeeTaskModel(
-        employee_id=employee_id,
-        task_id=task_id,
+        employee_id=request_data.employee_id,
+        task_id=request_data.task_id,
         assigned_by=current_user.id
     )
     
@@ -462,11 +518,14 @@ async def get_tasks(
         return {"tasks": task_data}
 
 
+class CompleteTaskRequest(BaseModel):
+    assignment_id: str
+
 @app.post("/{name}/{role}/tasks/complete")
 async def complete_task(
     name: str,
     role: str,
-    assignment_id: str = Form(...),
+    request_data: CompleteTaskRequest,
     session: AsyncSession = Depends(get_async_session),
     current_user: UserModel = Depends(get_current_user)
 ):
@@ -475,7 +534,7 @@ async def complete_task(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     # Find task assignment
-    assignment = await session.get(EmployeeTaskModel, assignment_id)
+    assignment = await session.get(EmployeeTaskModel, request_data.assignment_id)
     if not assignment or assignment.employee_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task assignment not found")
     

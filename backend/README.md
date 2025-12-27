@@ -579,7 +579,46 @@ app.add_middleware(
 )
 ```
 
-## 📚 API Documentation
+## � Troubleshooting
+
+### 401 Unauthorized Error on Friend's/Team's Deployment
+
+**Problem**: You get 200 OK, but your friend gets 401 Unauthorized with same credentials
+
+**Root Cause**: Each deployment has its own database. Your friend's database is empty!
+
+**Solution**: The backend now **automatically creates default users** on first startup!
+
+Just ensure your friend:
+1. Pulls the latest code
+2. Runs `docker-compose down` (to clear old containers)
+3. Runs `docker-compose up -d`
+4. Checks logs: `docker logs hr_backend | grep "Default users"`
+5. Should see: "✅ Default users created!"
+
+**Default Credentials** (auto-created):
+```
+HR: john.hr@company.com / password123
+Employees: jane/bob/alice.employee@company.com / password123
+```
+
+### Reset Database Completely
+
+If you need to start fresh:
+```bash
+docker-compose down
+docker volume rm backend_postgres_data
+docker-compose up -d
+```
+
+### Check if Default Users Were Created
+
+```bash
+docker logs hr_backend --tail 30
+# Look for: "✅ Default users created!" or "Default users already exist"
+```
+
+## �📚 API Documentation
 
 Visit `http://localhost:8000/docs` for interactive Swagger UI documentation with all endpoints, request/response schemas, and the ability to test API calls directly.
 
