@@ -1,0 +1,83 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Virtual environments
+# =========================
+venv/
+.env/
+.env.*
+!.env.example
+
+# =========================
+# Python packaging
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Database / local state
+# =========================
+*.sqlite3
+*.db
+alembic/versions/*.pyc
+
+# =========================
+# FastAPI / ASGI
+# =========================
+*.pid
+uvicorn.log
+
+# =========================
+# Editor / IDE
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Docker
+# =========================
+.dockerignore
+docker-compose.override.yml
+
+# =========================
+# Tests / coverage
+# =========================
+.coverage
+htmlcov/
+.pytest_cache/
+
+# =========================
+# Uploads / user files
+# =========================
+uploads/
+media/
+
+# =========================
+# Secrets (never commit)
+# =========================
+*.pem
+*.key
+*.crt
+secrets/
+venv/
+
