@@ -70,9 +70,13 @@ The system automatically creates default users on first startup:
 
 ## 📚 API Endpoints
 
+**Base URL:** `http://localhost:8000/api`
+
+All endpoints (except health check) are prefixed with `/api`. Authentication required for all endpoints except `/api/auth/login`.
+
 ### Authentication
 
-#### POST `/auth/login`
+#### POST `/api/auth/login`
 Login and receive JWT access token.
 
 **Request:**
@@ -100,8 +104,8 @@ Login and receive JWT access token.
 }
 ```
 
-#### POST `/auth/register`
-Register a new employee account.
+#### POST `/api/auth/register`
+Register a new employee account (HR only).
 
 **Request:**
 ```json
@@ -115,7 +119,7 @@ Register a new employee account.
 
 **Response:** Same as login response
 
-#### POST `/auth/logout`
+#### POST `/api/auth/logout`
 Logout current user (client should discard token).
 
 **Headers:** `Authorization: Bearer <token>`
@@ -127,7 +131,7 @@ Logout current user (client should discard token).
 }
 ```
 
-#### GET `/auth/me`
+#### GET `/api/auth/me`
 Get current authenticated user details.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -145,7 +149,7 @@ Get current authenticated user details.
 }
 ```
 
-#### GET `/auth/verify`
+#### GET `/api/auth/verify`
 Verify if current token is valid.
 
 **Headers:** `Authorization: Bearer <token>`
@@ -161,12 +165,8 @@ Verify if current token is valid.
 
 ### Dashboard
 
-#### GET `/{name}/{role}/dashboard`
-Get dashboard statistics for HR or Employee.
-
-**Path Parameters:**
-- `name`: URL-encoded lowercase name (e.g., `john-hr`, `jane%20employee`)
-- `role`: User role (`hr` or `employee`)
+#### GET `/api/dashboard/`
+Get dashboard statistics based on current user role (automatically detected from JWT token).
 
 **Headers:** `Authorization: Bearer <token>`
 
@@ -200,7 +200,7 @@ Get dashboard statistics for HR or Employee.
 Get paginated list of all employees (HR only).
 
 **Query Parameters:**
-- `page`: Page number (default: 1)
+- `page`: Papi/employees/: 1)
 - `page_size`: Items per page (default: 50)
 
 **Headers:** `Authorization: Bearer <token>`
@@ -229,7 +229,7 @@ Get paginated list of all employees (HR only).
 Get employee details with tasks and documents (HR only).
 
 **Response:**
-```json
+```jsonapi/employees
 {
   "employee": {
     "id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
@@ -257,7 +257,7 @@ Get employee details with tasks and documents (HR only).
 Update employee details (HR only).
 
 **Request:**
-```json
+```jsonapi
 {
   "name": "Updated Name",
   "email": "updated.email@company.com",
@@ -282,7 +282,7 @@ Update employee details (HR only).
 Delete employee with cascade deletion of related data (HR only).
 
 **Response:**
-```json
+```jsonapi
 {
   "message": "Employee deleted successfully"
 }
@@ -296,8 +296,8 @@ Delete employee with cascade deletion of related data (HR only).
 Get paginated list of tasks (HR sees all, Employee sees assigned).
 
 **Query Parameters:**
-- `page`: Page number (default: 1)
-- `page_size`: Items per page (default: 50)
+- `page`: Papi/tasks/`
+Get paginated list of tasks. Role-based: HR sees all tasks, Employees see only their assigned tasks
 
 **Response:**
 ```json
@@ -344,7 +344,7 @@ Get paginated list of tasks (HR sees all, Employee sees assigned).
 Create a new task (HR only).
 
 **Request:**
-```json
+```jsonapi/tasks/
 {
   "title": "Complete Onboarding",
   "description": "Read employee handbook",
@@ -376,7 +376,7 @@ Create a new task (HR only).
 Update task details (HR only).
 
 **Request:**
-```json
+```jsonapi
 {
   "title": "Updated Task Title",
   "description": "Updated description",
@@ -390,7 +390,7 @@ Update task details (HR only).
 Delete task with cascade deletion of assignments (HR only).
 
 **Response:**
-```json
+```jsonapi
 {
   "message": "Task deleted successfully"
 }
@@ -400,14 +400,16 @@ Delete task with cascade deletion of assignments (HR only).
 Assign task to employee (HR only).
 
 **Request:**
+```jsonapi/tasks/{task_id}/assign`
+Assign task to employee (HR only).
+
+**Path Parameters:**
+- `task_id`: The task ID to assign
+
+**Request:**
 ```json
 {
-  "employee_id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
-  "task_id": "f63bb9ff-f823-4d49-a9a9-071fa159f670"
-}
-```
-
-**Response:**
+  "employee_id": "7b1938cb-858e-4b25-9658-71468ccf01cd
 ```json
 {
   "message": "Task assigned successfully"
@@ -416,8 +418,8 @@ Assign task to employee (HR only).
 
 #### POST `/{name}/employee/tasks/complete`
 Mark assigned task as completed (Employee only).
-
-**Request:**
+ATCH `/api/tasks/{task_id}/complete`
+Mark assigned task as completed (Employee can complete their own tasks
 ```json
 {
   "assignment_id": "9d90df1d-8569-42d3-980f-c3631b2e3ec7"
@@ -437,8 +439,8 @@ Mark assigned task as completed (Employee only).
 
 #### GET `/{name}/{role}/documents`
 Get paginated list of documents.
-
-**Query Parameters:**
+api/documents/`
+Get paginated list of documents. Role-based: HR sees all documents, Employees see only their own
 - `page`: Page number (default: 1)
 - `page_size`: Items per page (default: 50)
 
@@ -468,8 +470,8 @@ Get paginated list of documents.
 
 #### POST `/{name}/employee/documents/upload`
 Upload document (Employee only).
-
-**Request:** `multipart/form-data`
+api/documents/upload`
+Upload document (authenticated usersata`
 - `file`: File to upload
 - `document_type`: Document type (`aadhar`, `resume`, `other`)
 
@@ -487,8 +489,8 @@ Upload document (Employee only).
 
 #### GET `/{name}/{role}/training`
 Get paginated list of training modules with progress.
-
-**Query Parameters:**
+api/training/`
+Get paginated list of training modules. For employees, includes their progress. For HR, shows all modules without
 - `page`: Page number (default: 1)
 - `page_size`: Items per page (default: 50)
 
@@ -518,8 +520,8 @@ Get paginated list of training modules with progress.
 
 #### PUT `/{name}/employee/training/{training_id}`
 Update training progress (Employee only).
-
-**Request:**
+api/training/{training_id}`
+Update training progress (authenticated users can update their own progress
 ```json
 {
   "progress_percentage": 75
@@ -541,7 +543,7 @@ Update training progress (Employee only).
 
 #### GET `/{name}/hr/performance`
 Get overall system performance statistics (HR only).
-
+api/performance/
 **Response:**
 ```json
 {
@@ -558,7 +560,7 @@ Get overall system performance statistics (HR only).
 
 #### GET `/{name}/hr/performance/{employee_id}`
 Get individual employee performance metrics (HR only).
-
+api
 **Response:**
 ```json
 {
@@ -587,7 +589,7 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-const apiClient = axios.create({
+const apiClient = axios.create({/api
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -627,11 +629,15 @@ const login = async (email, password) => {
   localStorage.setItem('access_token', response.data.access_token);
   return response.data.user;
 };
+localStorage.setItem('user', JSON.stringify(response.data.user));
+  return response.data.user;
+};
 
 // Logout
 const logout = async () => {
   await apiClient.post('/auth/logout');
   localStorage.removeItem('access_token');
+  localStorage.removeItem('user');
 };
 
 // Get current user
@@ -641,21 +647,30 @@ const getCurrentUser = async () => {
 };
 ```
 
-### URL Name Encoding
+### Making API Calls
 
-Names with spaces must be URL-encoded in path parameters:
+**No more name/role in URLs!** User info is automatically extracted from JWT token.
 
 ```javascript
-// Correct
-const encodedName = encodeURIComponent(user.name.toLowerCase());
-const url = `/${encodedName}/${user.role}/dashboard`;
-// Result: /jane%20employee/employee/dashboard
+// ✅ Correct - Clean API calls
+const getDashboard = async () => {
+  const response = await apiClient.get('/dashboard/');
+  return response.data;
+};
 
-// Incorrect
-const url = `/${user.name.toLowerCase()}/${user.role}/dashboard`;
-// Would fail for names with spaces
-```
+const getTasks = async (page = 1) => {
+  const response = await apiClient.get('/tasks/', {
+    params: { page, page_size: 50 }
+  });
+  return response.data;
+};) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('document_type', documentType);
 
+  const response = await apiClient.post(
+    '/documents/upload'
+// const url = `/${name}/${role}/dashboard`; // Don't do this!
 ### File Upload
 
 ```javascript
@@ -671,15 +686,58 @@ const uploadDocument = async (file, documentType, userName, role) => {
     {
       headers: {
         'Content-Type': 'multipart/form-data',
-      },
-    }
-  );
-  return response.data;
+      },'/tasks/', {
+    params: { page, page_size: pageSize },
+  });
+  return {
+    tasks: response.data.tasks,
+    total: response.data.total,
+    page: response.data.page,
+    pageSize: response.data.page_size,
+  };
 };
 ```
 
-### Pagination
+### Complete API Examples
 
+```javascript
+// Employee Management (HR only)
+const getEmployees = () => apiClient.get('/employees/');
+const getEmployee = (id) => apiClient.get(`/employees/${id}`);
+const updateEmployee = (id, data) => apiClient.put(`/employees/${id}`, data);
+const deleteEmployee = (id) => apiClient.delete(`/employees/${id}`);
+
+// Task Management
+const getTasks = () => apiClient.get('/tasks/');
+const createTask = (data) => apiClient.post('/tasks/', data);
+const updateTask = (id, data) => apiClient.put(`/tasks/${id}`, data);
+const deleteTask = (id) => apiClient.delete(`/tasks/${id}`);
+const assignTask = (taskId, employeeId) => 
+  apiClient.post(`/tasks/${taskId}/assign`, { employee_id: employeeId });
+const completeTask = (taskId, assignmentId) => 
+  apiClient.patch(`/tasks/${taskId}/complete`, { assignment_id: assignmentId });
+
+// Training
+const getTraining = () => apiClient.get('/training/');
+const updateTrainingProgress = (id, progress) => 
+  apiClient.put(`/training/${id}`, { progress_percentage: progress });
+
+// Performance (HR only)
+const getOverallPerformance = () => apiClient.get('/performance/');
+const getEmployeePerformance = (id) => apiClient.get(`/performance/${id}`);
+
+// Dashboard
+const getDashboard = () => apiClient.get('/dashboard/');
+
+// Documents
+const getDocuments = () => apiClient.get('/documents/');
+const uploadDocument = (file, type) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('document_type', type);
+  return apiClient.post('/documents/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
 ```javascript
 const getTasks = async (page = 1, pageSize = 50) => {
   const response = await apiClient.get(`/${name}/${role}/tasks`, {
@@ -772,12 +830,16 @@ const getTasks = async (page = 1, pageSize = 50) => {
 
 **PostgreSQL Database:**
 - Image: `postgres:15-alpine`
-- Port: `5434:5432`
-- Database: `hr_onboarding_system`
-- User: `postgres`
-- Password: `roshan`
-- Volume: `postgres_data` (persistent storage)
-
+- Po22/22 endpoints working
+- ✅ Authentication flow verified (login, logout, token validation)
+- ✅ Role-based access control working (HR/Employee separation)
+- ✅ Authorization enforced (403 for unauthorized access)
+- ✅ Task assignment and completion tested
+- ✅ Dashboard metrics accurate
+- ✅ Pagination working on all list endpoints
+- ✅ Employee CRUD operations validated
+- ✅ Document uploads functional
+- ✅ Training progress tracking verified
 **FastAPI Backend:**
 - Python: `3.11-slim`
 - Port: `8000:8000`

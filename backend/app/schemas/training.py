@@ -62,6 +62,11 @@ class EmployeeTrainingUpdateSchema(BaseModel):
     progress_percentage: Optional[int] = None
 
 
+class TrainingProgressUpdateSchema(BaseModel):
+    """Schema for updating training progress percentage"""
+    progress_percentage: float
+
+
 class EmployeeTrainingResponseSchema(EmployeeTrainingBaseSchema):
     """Schema for employee training response"""
     id: str

@@ -114,16 +114,3 @@ def require_role(required_role: UserRole):
             )
         return current_user
     return role_checker
-
-
-def verify_user_access(name: str, role: str, current_user: UserModel) -> bool:
-    """Verify if current user can access the requested user's data"""
-    # HR can access any employee's data
-    if current_user.role == UserRole.HR:
-        return True
-    
-    # Employee can only access their own data
-    if current_user.role == UserRole.EMPLOYEE:
-        return current_user.name.lower() == name.lower() and current_user.role.value == role.lower()
-    
-    return False
