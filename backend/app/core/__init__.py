@@ -1,0 +1,1 @@
+"""Core module for HR Onboarding System"""
