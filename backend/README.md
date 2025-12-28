@@ -1,1270 +1,280 @@
-# HiveDesk - HR Onboarding System Backend API
+# 🐝 HiveDesk - AI-Powered HR Onboarding Backend
 
-FastAPI-based backend API for HiveDesk HR Onboarding System with PostgreSQL database, JWT authentication, and comprehensive employee management features.
+**FastAPI backend with AI-powered document verification, intelligent task management, and automated employee onboarding workflows.**
 
-## 🚀 Features
+Built with clean architecture, async processing, and production-ready Docker deployment.
 
-- **JWT Authentication** - Secure token-based authentication with 30-minute expiry
-- **Role-Based Access Control** - HR and Employee roles with granular permissions
-- **Employee Management** - Complete CRUD operations for employee records
-- **Task Management** - Create, assign, track, and complete onboarding tasks
-- **Training Modules** - Track employee training progress with auto-completion
-- **Document Management** - Upload and manage employee documents
-- **Performance Analytics** - Real-time performance metrics and completion rates
-- **Pagination** - All list endpoints support pagination (page, page_size)
-- **Auto-Generated Docs** - Interactive API documentation (Swagger & Scalar)
+---
 
-## 📋 Prerequisites
+## ✨ The Magic Behind HiveDesk
 
-- Docker & Docker Compose (recommended)
-- Python 3.11+ (for local development)
-- PostgreSQL 15+ (if running without Docker)
+### 🧠 **AI-Powered Intelligence**
+- **Document Verification**: Gemini AI automatically validates Aadhaar, PAN, resumes with smart data extraction
+- **Intelligent Assistants**: Context-aware HR & Employee chatbots for instant onboarding guidance
+- **Smart Analytics**: AI-driven performance insights and onboarding progress tracking
 
-## 🛠️ Quick Start
+### 🔐 **Security & Auth**
+- JWT token-based authentication with secure password hashing
+- Role-based access control (HR vs Employee permissions)
+- Async session management with PostgreSQL
 
-### Using Docker (Recommended)
-
-```bash
-cd backend
-docker-compose up -d
+### 📊 **Core Workflow**
+```
+Employee Joins → Upload Documents → AI Verification → Task Assignment 
+  → Training Modules → Performance Tracking → Onboarding Complete
 ```
 
-The API will be available at:
-- **API Base URL**: http://localhost:8000
-- **Swagger Docs**: http://localhost:8000/docs
-- **Scalar Docs**: http://localhost:8000/scalar
-
-### Local Development
-
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
+### 🏗️ **Clean Architecture**
+```
+Routers (API Layer) → Services (Business Logic) → Models (Database)
+                    ↓
+              AI Services (Gemini Integration)
 ```
 
-2. Configure environment variables in `.env`:
-```env
+---
+
+## 🚀 Quick Start with Docker
+
+### 1️⃣ **Setup Environment**
+
+Copy the example environment file:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your credentials:
+```bash
+# Required: Generate a secure secret key
+SECRET_KEY=<run: python -c "import secrets; print(secrets.token_hex(32))">
+
+# Required: Get your free API key from https://aistudio.google.com/apikey
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# Database (auto-configured with Docker)
 DATABASE_URL=postgresql+asyncpg://postgres:roshan@localhost:5434/hr_onboarding_system
-SECRET_KEY=your-secret-key-here
 ```
 
-3. Run the application:
-```bash
-python run.py
-```
-
-## 🔐 Default Credentials
-
-The system automatically creates default users on first startup:
-
-**HR Account:**
-- Email: `john.hr@company.com`
-- Password: `password123`
-- Role: `hr`
-
-**Employee Accounts:**
-- Email: `jane.employee@company.com`
-- Password: `password123`
-- Role: `employee`
-
-(Additional employees: bob.employee@company.com, alice.employee@company.com)
-
-## 📚 API Endpoints
-
-### Authentication
-
-#### POST `/auth/login`
-Login and receive JWT access token.
-
-**Request:**
-```json
-{
-  "email": "john.hr@company.com",
-  "password": "password123"
-}
-```
-
-**Response:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "token_type": "bearer",
-  "user": {
-    "id": "e5c9b9f1-76a2-4a66-b769-d2e9029654aa",
-    "name": "John HR",
-    "email": "john.hr@company.com",
-    "role": "hr",
-    "is_active": true,
-    "created_at": "2025-12-27T07:00:38.280471",
-    "updated_at": "2025-12-27T07:00:38.280475"
-  }
-}
-```
-
-#### POST `/auth/register`
-Register a new employee account.
-
-**Request:**
-```json
-{
-  "name": "New Employee",
-  "email": "new.employee@company.com",
-  "password": "securepassword",
-  "role": "employee"
-}
-```
-
-**Response:** Same as login response
-
-#### POST `/auth/logout`
-Logout current user (client should discard token).
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response:**
-```json
-{
-  "message": "Logged out successfully"
-}
-```
-
-#### GET `/auth/me`
-Get current authenticated user details.
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response:**
-```json
-{
-  "id": "e5c9b9f1-76a2-4a66-b769-d2e9029654aa",
-  "name": "John HR",
-  "email": "john.hr@company.com",
-  "role": "hr",
-  "is_active": true,
-  "created_at": "2025-12-27T07:00:38.280471",
-  "updated_at": "2025-12-27T07:00:38.280475"
-}
-```
-
-#### GET `/auth/verify`
-Verify if current token is valid.
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response:**
-```json
-{
-  "message": "Token is valid"
-}
-```
-
----
-
-### Dashboard
-
-#### GET `/api/dashboard`
-Get dashboard statistics for HR or Employee.
-
-**Path Parameters:**
-- `name`: URL-encoded lowercase name (e.g., `john-hr`, `jane%20employee`)
-- `role`: User role (`hr` or `employee`)
-
-**Headers:** `Authorization: Bearer <token>`
-
-**HR Response:**
-```json
-{
-  "role": "hr",
-  "total_employees": 5,
-  "pending_tasks": 3,
-  "pending_documents": 2,
-  "recent_activities": []
-}
-```
-
-**Employee Response:**
-```json
-{
-  "role": "employee",
-  "total_tasks": 5,
-  "completed_tasks": 3,
-  "pending_tasks": 2,
-  "completion_rate": 60.0
-}
-```
-
----
-
-### Employee Management
-
-#### GET `/api/employees`
-Get paginated list of all employees (HR only).
-
-**Query Parameters:**
-- `page`: Page number (default: 1)
-- `page_size`: Items per page (default: 50)
-
-**Headers:** `Authorization: Bearer <token>`
-
-**Response:**
-```json
-{
-  "employees": [
-    {
-      "id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
-      "name": "Jane Employee",
-      "email": "jane.employee@company.com",
-      "is_active": true,
-      "total_tasks": 5,
-      "completed_tasks": 3,
-      "completion_rate": 60.0
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 50
-}
-```
-
-#### GET `/api/employees/{employee_id}`
-Get employee details with tasks and documents (HR only).
-
-**Response:**
-```json
-{
-  "employee": {
-    "id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
-    "name": "Jane Employee",
-    "email": "jane.employee@company.com",
-    "is_active": true
-  },
-  "tasks": [
-    {
-      "assignment_id": "9d90df1d-8569-42d3-980f-c3631b2e3ec7",
-      "task_id": "f63bb9ff-f823-4d49-a9a9-071fa159f670",
-      "title": "Complete Onboarding",
-      "description": "Read employee handbook",
-      "task_type": "read",
-      "status": "pending",
-      "assigned_at": "2025-12-27T16:54:30.977534",
-      "completed_at": null
-    }
-  ],
-  "documents": []
-}
-```
-
-#### PUT `/api/employees/{employee_id}`
-Update employee details (HR only).
-
-**Request:**
-```json
-{
-  "name": "Updated Name",
-  "email": "updated.email@company.com",
-  "is_active": true
-}
-```
-
-**Response:**
-```json
-{
-  "id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
-  "name": "Updated Name",
-  "email": "updated.email@company.com",
-  "role": "employee",
-  "is_active": true,
-  "created_at": "2025-12-27T07:00:38.530367",
-  "updated_at": "2025-12-27T16:52:42.624941"
-}
-```
-
-#### DELETE `/api/employees/{employee_id}`
-Delete employee with cascade deletion of related data (HR only).
-
-**Response:**
-```json
-{
-  "message": "Employee deleted successfully"
-}
-```
-
----
-
-### Task Management
-
-#### GET `/api/tasks`
-Get paginated list of tasks (HR sees all, Employee sees assigned).
-
-**Query Parameters:**
-- `page`: Page number (default: 1)
-- `page_size`: Items per page (default: 50)
-
-**Response:**
-```json
-{
-  "tasks": [
-    {
-      "id": "f63bb9ff-f823-4d49-a9a9-071fa159f670",
-      "title": "Complete Onboarding",
-      "description": "Read employee handbook",
-      "task_type": "read",
-      "is_active": true,
-      "created_at": "2025-12-27T16:53:56.809435"
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 50
-}
-```
-
-**Employee Response** (includes assignment details):
-```json
-{
-  "tasks": [
-    {
-      "assignment_id": "9d90df1d-8569-42d3-980f-c3631b2e3ec7",
-      "task_id": "f63bb9ff-f823-4d49-a9a9-071fa159f670",
-      "title": "Complete Onboarding",
-      "description": "Read employee handbook",
-      "task_type": "read",
-      "content": "Review company policies",
-      "status": "pending",
-      "assigned_at": "2025-12-27T16:54:30.977534",
-      "completed_at": null
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 50
-}
-```
-
-#### POST `/api/tasks`
-Create a new task (HR only).
-
-**Request:**
-```json
-{
-  "title": "Complete Onboarding",
-  "description": "Read employee handbook",
-  "task_type": "read",
-  "content": "Review company policies",
-  "is_active": true
-}
-```
-
-**Task Types:** `read`, `upload`, `sign`
-
-**Response:**
-```json
-{
-  "id": "f63bb9ff-f823-4d49-a9a9-071fa159f670",
-  "title": "Complete Onboarding",
-  "description": "Read employee handbook",
-  "task_type": "read",
-  "content": "Review company policies",
-  "required_document_type": null,
-  "is_active": true,
-  "created_by": "e5c9b9f1-76a2-4a66-b769-d2e9029654aa",
-  "created_at": "2025-12-27T16:53:56.809435",
-  "updated_at": "2025-12-27T16:53:56.809439"
-}
-```
-
-#### PUT `/api/tasks/{task_id}`
-Update task details (HR only).
-
-**Request:**
-```json
-{
-  "title": "Updated Task Title",
-  "description": "Updated description",
-  "is_active": true
-}
-```
-
-**Response:** Full task object with updated fields
-
-#### DELETE `/api/tasks/{task_id}`
-Delete task with cascade deletion of assignments (HR only).
-
-**Response:**
-```json
-{
-  "message": "Task deleted successfully"
-}
-```
-
-#### POST `/api/tasks/{task_id}/assign`
-Assign task to employee (HR only).
-
-**Request:**
-```json
-{
-  "employee_id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
-  "task_id": "f63bb9ff-f823-4d49-a9a9-071fa159f670"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Task assigned successfully"
-}
-```
-
-#### PATCH `/api/tasks/{task_id}/complete`
-Mark assigned task as completed (Employee only).
-
-**Request:**
-```json
-{
-  "assignment_id": "9d90df1d-8569-42d3-980f-c3631b2e3ec7"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Task marked as completed"
-}
-```
-
----
-
-### Document Management
-
-#### GET `/api/documents`
-Get paginated list of documents.
-
-**Query Parameters:**
-- `page`: Page number (default: 1)
-- `page_size`: Items per page (default: 50)
-
-**Response:**
-```json
-{
-  "documents": [
-    {
-      "id": "30947b63-15df-4f0b-a5a3-3a1ff2f74354",
-      "employee_id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
-      "document_type": "resume",
-      "original_filename": "resume.txt",
-      "verification_status": "pending",
-      "uploaded_at": "2025-12-27T17:15:42.010902",
-      "verified_at": null
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 50
-}
-```
-
-**Document Types:** `aadhar`, `resume`, `other`
-
-**Verification Status:** `pending`, `verified`, `rejected`
-
-#### POST `/api/documents/upload`
-Upload document (Employee only).
-
-**Request:** `multipart/form-data`
-- `file`: File to upload
-- `document_type`: Document type (`aadhar`, `resume`, `other`)
-
-**Response:**
-```json
-{
-  "message": "Document uploaded successfully",
-  "document_id": "30947b63-15df-4f0b-a5a3-3a1ff2f74354"
-}
-```
-
----
-
-### Training Management
-
-#### GET `/api/training`
-Get paginated list of training modules with progress.
-
-**Query Parameters:**
-- `page`: Page number (default: 1)
-- `page_size`: Items per page (default: 50)
-
-**Response:**
-```json
-{
-  "training_modules": [
-    {
-      "id": "8183034f-f518-45cc-a0a7-0f859409b36f",
-      "title": "Security Training",
-      "description": "Learn security best practices",
-      "duration_minutes": 60,
-      "is_mandatory": true,
-      "progress": {
-        "status": "completed",
-        "progress_percentage": 100,
-        "started_at": "2025-12-27T17:14:13.274173",
-        "completed_at": "2025-12-27T17:14:25.907075"
-      }
-    }
-  ],
-  "total": 1,
-  "page": 1,
-  "page_size": 50
-}
-```
-
-#### PUT `/api/training/{training_id}`
-Update training progress (Employee only).
-
-**Request:**
-```json
-{
-  "progress_percentage": 75
-}
-```
-
-**Note:** Automatically marks as completed when `progress_percentage >= 100`
-
-**Response:**
-```json
-{
-  "message": "Training progress updated successfully"
-}
-```
-
----
-
-### Performance Analytics
-
-#### GET `/api/performance`
-Get overall system performance statistics (HR only).
-
-**Response:**
-```json
-{
-  "total_employees": 4,
-  "active_employees": 4,
-  "total_tasks_assigned": 10,
-  "total_tasks_completed": 6,
-  "overall_task_completion_rate": 60.0,
-  "total_training_modules": 5,
-  "avg_training_completion": 75.5,
-  "pending_documents": 3
-}
-```
-
-#### GET `/api/performance/{employee_id}`
-Get individual employee performance metrics (HR only).
-
-**Response:**
-```json
-{
-  "employee_id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
-  "employee_name": "Jane Employee",
-  "total_tasks": 5,
-  "completed_tasks": 3,
-  "pending_tasks": 2,
-  "completion_rate": 60.0,
-  "total_training": 5,
-  "completed_training": 4,
-  "training_completion_rate": 80.0,
-  "avg_task_completion_days": 2.5
-}
-```
-
----
-
-## 🔌 Frontend Integration Guide
-
-### Setting Up API Client
-
-```javascript
-// src/services/api.js
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000';
-
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Add token to requests
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Handle 401 responses
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-export default apiClient;
-```
-
-### Authentication Flow
-
-```javascript
-// Login
-const login = async (email, password) => {
-  const response = await apiClient.post('/auth/login', { email, password });
-  localStorage.setItem('access_token', response.data.access_token);
-  return response.data.user;
-};
-
-// Logout
-const logout = async () => {
-  await apiClient.post('/auth/logout');
-  localStorage.removeItem('access_token');
-};
-
-// Get current user
-const getCurrentUser = async () => {
-  const response = await apiClient.get('/auth/me');
-  return response.data;
-};
-```
-
-### URL Name Encoding
-
-Names with spaces must be URL-encoded in path parameters:
-
-```javascript
-// Correct
-const encodedName = encodeURIComponent(user.name.toLowerCase());
-const url = `/${encodedName}/${user.role}/dashboard`;
-// Result: /jane%20employee/employee/dashboard
-
-// Incorrect
-const url = `/${user.name.toLowerCase()}/${user.role}/dashboard`;
-// Would fail for names with spaces
-```
-
-### File Upload
-
-```javascript
-const uploadDocument = async (file, documentType, userName, role) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('document_type', documentType);
-
-  const encodedName = encodeURIComponent(userName.toLowerCase());
-  const response = await apiClient.post(
-    `/${encodedName}/${role}/documents/upload`,
-    formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }
-  );
-  return response.data;
-};
-```
-
-### Pagination
-
-```javascript
-const getTasks = async (page = 1, pageSize = 50) => {
-  const response = await apiClient.get(`/${name}/${role}/tasks`, {
-    params: { page, page_size: pageSize },
-  });
-  return {
-    tasks: response.data.tasks,
-    total: response.data.total,
-    page: response.data.page,
-    pageSize: response.data.page_size,
-  };
-};
-```
-
----
-
-## 🗄️ Database Schema
-
-### Users
-- `id`: UUID (Primary Key)
-- `name`: String
-- `email`: String (Unique)
-- `password_hash`: String
-- `role`: Enum (hr, employee)
-- `is_active`: Boolean
-- `created_at`: DateTime
-- `updated_at`: DateTime
-
-### Tasks
-- `id`: UUID (Primary Key)
-- `title`: String
-- `description`: String (Optional)
-- `task_type`: Enum (read, upload, sign)
-- `content`: String (Optional)
-- `required_document_type`: Enum (Optional)
-- `is_active`: Boolean
-- `created_by`: UUID (Foreign Key → Users)
-
-### Employee Tasks (Assignments)
-- `id`: UUID (Primary Key)
-- `employee_id`: UUID (Foreign Key → Users)
-- `task_id`: UUID (Foreign Key → Tasks)
-- `status`: Enum (pending, completed)
-- `assigned_at`: DateTime
-- `completed_at`: DateTime (Optional)
-
-### Training Modules
-- `id`: UUID (Primary Key)
-- `title`: String
-- `description`: String (Optional)
-- `content`: String (Optional)
-- `duration_minutes`: Integer
-- `is_mandatory`: Boolean
-- `is_active`: Boolean
-
-### Employee Training (Progress)
-- `id`: UUID (Primary Key)
-- `employee_id`: UUID (Foreign Key → Users)
-- `training_module_id`: UUID (Foreign Key → Training Modules)
-- `progress_percentage`: Integer
-- `status`: Enum (pending, completed)
-- `started_at`: DateTime
-- `completed_at`: DateTime (Optional)
-
-### Documents
-- `id`: UUID (Primary Key)
-- `employee_id`: UUID (Foreign Key → Users)
-- `document_type`: Enum (aadhar, resume, other)
-- `file_path`: String
-- `original_filename`: String
-- `verification_status`: Enum (pending, verified, rejected)
-- `uploaded_at`: DateTime
-- `verified_at`: DateTime (Optional)
-
----
-
-## 🔒 Security
-
-- **JWT Tokens**: 30-minute expiry, HS256 algorithm
-- **Password Hashing**: bcrypt with salt
-- **CORS**: Configured for localhost:5173, localhost:3000
-- **Role-Based Access**: Endpoints protected by role decorators
-- **Input Validation**: Pydantic schemas validate all requests
-
----
-
-## 🐳 Docker Configuration
-
-### Services
-
-**PostgreSQL Database:**
-- Image: `postgres:15-alpine`
-- Port: `5434:5432`
-- Database: `hr_onboarding_system`
-- User: `postgres`
-- Password: `roshan`
-- Volume: `postgres_data` (persistent storage)
-
-**FastAPI Backend:**
-- Python: `3.11-slim`
-- Port: `8000:8000`
-- Auto-restarts on failure
-- Multi-stage optimized build
-
-### Commands
+### 2️⃣ **Build & Run**
 
 ```bash
-# Start services
-docker-compose up -d
+# Start everything (database + backend)
+docker-compose up --build -d
 
 # View logs
 docker-compose logs -f backend
 
-# Restart backend
-docker-compose restart backend
-
 # Stop services
 docker-compose down
+```
 
-# Rebuild (after code changes)
-docker-compose build --no-cache backend
-docker-compose up -d
+### 3️⃣ **Access the API**
+
+- **🌐 API Base**: http://localhost:8000
+- **📖 Interactive Docs**: http://localhost:8000/scalar
+- **🔧 Swagger UI**: http://localhost:8000/docs
+
+---
+
+## 🔐 Test Credentials
+
+The system auto-creates demo accounts on first startup:
+
+| Role | Email | Password |
+|------|-------|----------|
+| **HR** | `john.hr@company.com` | `password123` |
+| **Employee** | `jane.employee@company.com` | `password123` |
+
+---
+
+## 📦 Environment Variables Explained
+
+### **Required Variables**
+
+| Variable | How to Get | Example |
+|----------|-----------|---------|
+| `SECRET_KEY` | Generate: `python -c "import secrets; print(secrets.token_hex(32))"` | `c2b21737f620c344...` (64 chars) |
+| `GEMINI_API_KEY` | 1. Visit https://aistudio.google.com/apikey<br>2. Create free API key<br>3. Copy key | `AIzaSyC...` |
+| `DATABASE_URL` | Auto-configured by Docker<br>For custom DB: `postgresql+asyncpg://user:pass@host:port/dbname` | `postgresql+asyncpg://...` |
+
+### **Optional Variables**
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `AI_MODE` | `live` | Set to `mock` to disable AI calls (testing) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | JWT token expiry time |
+| `UPLOAD_DIR` | `./uploads` | Document storage location |
+| `MAX_FILE_SIZE` | `10485760` | Max upload size (10MB) |
+
+### **Full .env Template**
+
+See [.env.example](c:/Myprojects/HiveDesk/backend/.env.example) for complete configuration template.
+
+---
+
+## 🏗️ Project Structure
+
+```
+backend/
+├── app/
+│   ├── main.py                 # FastAPI app initialization
+│   ├── database.py             # Async PostgreSQL connection
+│   ├── auth.py                 # JWT authentication
+│   ├── routers/                # API endpoints
+│   │   ├── auth.py            # Login, register, logout
+│   │   ├── documents.py       # AI document verification
+│   │   ├── tasks.py           # Task management
+│   │   ├── training.py        # Training modules
+│   │   ├── employees.py       # Employee CRUD
+│   │   ├── performance.py     # Analytics
+│   │   └── assistants.py      # AI chatbots
+│   ├── services/               # Business logic
+│   │   ├── ai_document_service.py    # Gemini AI integration
+│   │   ├── hr_assistant_service.py   # HR chatbot
+│   │   ├── employee_assistant_service.py  # Employee chatbot
+│   │   └── ...
+│   ├── models/                 # SQLModel database models
+│   └── schemas/                # Pydantic request/response schemas
+├── alembic/                    # Database migrations
+├── uploads/                    # Document storage
+├── Dockerfile                  # Multi-stage production build
+├── docker-compose.yml          # Full stack orchestration
+├── requirements.txt            # Python dependencies
+└── .env.example               # Environment template
 ```
 
 ---
 
-## 📝 Environment Variables
+## 🔧 Development Commands
 
-```env
-# Database
-DATABASE_URL=postgresql+asyncpg://postgres:roshan@postgres:5432/hr_onboarding_system
+```bash
+# Local development (without Docker)
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python run.py
 
-# JWT
-SECRET_KEY=your-super-secret-key-change-in-production
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+# Database migrations
+alembic revision --autogenerate -m "description"
+alembic upgrade head
 
-# CORS
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+# Run tests (if implemented)
+pytest
+
+# Check code quality
+black app/
+flake8 app/
 ```
 
 ---
 
-## 🧪 Testing
+## 🎯 Key Features & Workflows
 
-All endpoints have been tested and validated:
-- ✅ 31/31 endpoints working
-- ✅ Pagination tested
-- ✅ Role-based access verified
-- ✅ Cascade deletions validated
-- ✅ Auto-completion logic confirmed
-- ✅ File uploads working
-- ✅ Performance analytics accurate
+### **1. AI Document Verification**
+- Upload Aadhaar/PAN/Resume → Gemini AI extracts & validates data
+- Automatic compliance checking & data standardization
+- Supports PDF, images (OCR via Tesseract)
+
+### **2. Intelligent Task System**
+- Auto-assign onboarding tasks to new employees
+- Track completion status with real-time updates
+- Smart notifications & reminders
+
+### **3. Training Management**
+- Assign training modules with deadlines
+- Track progress & completion
+- Auto-generate completion certificates
+
+### **4. AI Assistants**
+- **HR Bot**: Answers policy questions, document requirements
+- **Employee Bot**: Onboarding guidance, task help
+- Context-aware responses using Gemini AI
+
+### **5. Performance Analytics**
+- Real-time onboarding completion rates
+- Task efficiency metrics
+- Training progress dashboards
 
 ---
 
 ## 📖 API Documentation
 
-Interactive API documentation is available at:
+Once running, explore the interactive API documentation:
 
-- **Swagger UI**: http://localhost:8000/docs
-- **Scalar UI**: http://localhost:8000/scalar
+- **Scalar Docs** (Recommended): http://localhost:8000/scalar  
+  *Modern, beautiful API explorer with request/response examples*
 
-Both provide:
-- Complete endpoint listing
-- Request/response schemas
-- Try-it-out functionality
-- Authentication support
+- **Swagger UI**: http://localhost:8000/docs  
+  *Traditional OpenAPI interface with try-it-out functionality*
 
----
-
-## 🤝 Support
-
-For issues or questions:
-1. Check the interactive API docs at `/docs` or `/scalar`
-2. Review this README for integration examples
-3. Verify authentication tokens are being sent correctly
-4. Ensure URL encoding for names with spaces
-
----
-
-## 🤖 AI Integration
-
-### Overview
-The system includes 4 AI-powered endpoints using Google Gemini 1.5 for intelligent automation:
-
-### 1. HR Assistant - Natural Language Query
-**Endpoint:** `POST /api/assistant/hr/ask`  
-**Auth:** HR role only
-
-Query employee data using natural language instead of complex filters.
-
-**Request:**
-```json
-{
-  "query": "How many employees completed onboarding this month?"
-}
+### **Quick API Flow**
 ```
-
-**Response:**
-```json
-{
-  "success": true,
-  "answer": "Based on the data, 3 employees completed onboarding this month...",
-  "confidence": 0.9,
-  "raw_data": {
-    "total_employees": 6,
-    "completed_onboarding": 3
-  }
-}
-```
-
-**Use Cases:**
-- "Show me employees stuck in onboarding"
-- "Which documents are pending verification?"
-- "What's the task completion rate?"
-
----
-
-### 2. Employee Chatbot
-**Endpoint:** `POST /api/assistant/employee/chat`  
-**Auth:** Any authenticated user
-
-AI-powered assistant to help employees with onboarding questions.
-
-**Request:**
-```json
-{
-  "message": "What tasks do I need to complete?",
-  "history": [
-    {"role": "user", "content": "Hi"},
-    {"role": "assistant", "content": "Hello! How can I help?"}
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "reply": "You have 2 pending tasks: 1) Upload PAN card, 2) Complete security training...",
-  "next_steps": ["upload_documents", "training"]
-}
-```
-
-**Features:**
-- Context-aware conversations (maintains history)
-- Personalized guidance based on employee data
-- Suggests next actions
-
----
-
-### 3. Get Onboarding Status
-**Endpoint:** `GET /api/onboarding/employee/{employee_id}/status`  
-**Auth:** HR or employee (own status only)
-
-AI-powered analysis of employee onboarding progress.
-
-**Response:**
-```json
-{
-  "employee_id": "7b1938cb-858e-4b25-9658-71468ccf01cd",
-  "analysis": {
-    "overall_completion": 45,
-    "status": "IN_PROGRESS",
-    "tasks": {
-      "total": 5,
-      "completed": 2,
-      "pending": 3
-    },
-    "documents": {
-      "verified": 1,
-      "pending": 2
-    },
-    "training": {
-      "completed": 3,
-      "progress": 60
-    },
-    "recommendations": [
-      "Upload pending Aadhaar document",
-      "Complete remaining 3 tasks",
-      "Finish security training"
-    ],
-    "estimated_completion_days": 3
-  }
-}
-```
-
-**Features:**
-- Real-time progress calculation
-- Smart recommendations
-- Completion time estimation
-
----
-
-### 4. Refresh Onboarding Status
-**Endpoint:** `POST /api/onboarding/employee/{employee_id}/refresh`  
-**Auth:** HR or employee (own status only)
-
-Manually trigger AI recalculation of onboarding metrics.
-
-**Response:**
-```json
-{
-  "message": "Onboarding status refreshed",
-  "analysis": { ... }
-}
+1. POST /api/auth/login → Get JWT token
+2. Use token in Authorization: Bearer <token>
+3. Explore endpoints in /scalar or /docs
 ```
 
 ---
 
-### 🎭 Mock Mode (Token Safety)
+## 🐳 Docker Details
 
-**Current Configuration:** Mock mode is **ENABLED** by default.
+### **Services**
+- **postgres**: PostgreSQL 15 database (port 5434)
+- **backend**: FastAPI application (port 8000)
 
-#### Why Mock Mode?
-- ✅ **Zero token costs** during development/testing
-- ✅ **Unlimited API calls** without Gemini API limits
-- ✅ **Realistic fake data** for demos and frontend development
-- ✅ **No API key required** to get started
+### **Volumes**
+- `postgres_data`: Persistent database storage
+- `./uploads`: Document uploads (bind mount)
 
-#### Configuration
-
-Set in `docker-compose.yml`:
-
-**Mock Mode (Testing/Demo - Default):**
-```yaml
-environment:
-  AI_MODE: mock
-```
-
-**Live Mode (Production with Real AI):**
-```yaml
-environment:
-  AI_MODE: live
-  GEMINI_API_KEY: your-actual-api-key-here
-```
-
-#### Token Savings
-- **Mock Mode:** 0 tokens used (100% FREE)
-- **Live Mode:** 512 tokens max per call (75% savings vs unoptimized)
-- **Request Caching:** Automatic deduplication prevents duplicate API calls
-
-#### How It Works
-
-```
-Request → Check AI_MODE
-           ↓
-    Mock? ─┬─ Yes → Return fake data (instant, free)
-           └─ No  → Call Gemini API (uses tokens)
-```
-
-**Mock responses include:**
-- Realistic employee data
-- Natural language answers
-- Progress percentages
-- Recommendations
-
----
-
-### 🏗️ AI Architecture
-
-```
-Document Upload
-   ↓
-PyPDF2/OCR Text Extraction
-   ↓
-Request Hash (Cache Check)
-   ↓
-Mock Mode? ─┬─ Yes → Mock Response
-            └─ No  → Gemini API (tiny prompt)
-                      ↓
-                   Structured JSON
-                      ↓
-                Backend Validation
-                      ↓
-                  Status Update
-```
-
-#### Key Components
-
-**1. Base AI Service** (`app/services/base_ai_service.py`)
-- Request caching (hash-based)
-- Mock response generation
-- Token limiting (512 max)
-- Error handling
-
-**2. Document AI Service** (`app/services/document_ai_service.py`)
-- PDF text extraction
-- Field extraction via AI
-- Document verification
-- Confidence scoring
-
-**3. HR Assistant Service** (`app/services/hr_assistant_service.py`)
-- Natural language query processing
-- Intent classification
-- Data fetching
-- Answer generation
-
-**4. Employee Assistant Service** (`app/services/employee_assistant_service.py`)
-- Conversational AI
-- Context maintenance
-- Personalized responses
-- Action suggestions
-
-**5. Onboarding AI Service** (`app/services/onboarding_ai_service.py`)
-- Progress analysis
-- Smart recommendations
-- Completion estimation
-- Status automation
-
----
-
-### 💰 Cost Optimization
-
-#### Before Optimization
-- Large prompts (2000+ tokens)
-- No caching
-- Every request hits API
-- **Cost:** $0.41 per 100 calls
-
-#### After Optimization
-- **Mock Mode:** FREE for development
-- **Small prompts:** 512 tokens max (field extraction only)
-- **Caching:** Duplicate requests served from cache
-- **Live Mode Cost:** $0.10 per 100 calls (75% savings)
-
----
-
-### 🧪 Testing AI Endpoints
-
-**PowerShell Example:**
-```powershell
-# Login
-$login = Invoke-RestMethod -Uri http://localhost:8000/api/auth/login `
-  -Method POST `
-  -Body '{"email":"test.hr@company.com","password":"testpassword123"}' `
-  -ContentType "application/json"
-
-$headers = @{Authorization = "Bearer $($login.access_token)"}
-
-# Test HR Assistant
-Invoke-RestMethod -Uri http://localhost:8000/api/assistant/hr/ask `
-  -Method POST `
-  -Body '{"query":"How many employees?"}' `
-  -ContentType "application/json" `
-  -Headers $headers
-
-# Test Employee Chat
-Invoke-RestMethod -Uri http://localhost:8000/api/assistant/employee/chat `
-  -Method POST `
-  -Body '{"message":"What should I do first?","history":[]}' `
-  -ContentType "application/json" `
-  -Headers $headers
-
-# Test Onboarding Status
-$userId = $login.user.id
-Invoke-RestMethod -Uri "http://localhost:8000/api/onboarding/employee/$userId/status" `
-  -Headers $headers
-
-# Test Refresh
-Invoke-RestMethod -Uri "http://localhost:8000/api/onboarding/employee/$userId/refresh" `
-  -Method POST `
-  -Headers $headers
-```
-
----
-
-### 📊 AI Service Dependencies
-
-**Python Packages:**
-```txt
-google-generativeai==0.8.3  # Gemini API
-PyPDF2==3.0.1              # PDF text extraction
-pillow==10.4.0             # Image processing
-pytesseract==0.3.13        # OCR
-pdf2image==1.17.0          # PDF to image conversion
-```
-
-**Environment Variables:**
+### **Useful Commands**
 ```bash
-AI_MODE=mock                    # mock or live
-GEMINI_API_KEY=your-key-here   # Required for live mode
+# Rebuild after code changes
+docker-compose up --build
+
+# View live logs
+docker-compose logs -f
+
+# Execute commands in container
+docker-compose exec backend python -c "from app.database import ..."
+
+# Reset everything (WARNING: deletes data)
+docker-compose down -v
 ```
 
 ---
 
-### 🚀 Production Deployment
+## 🚀 Production Deployment
 
-#### Pre-Deployment Checklist
-1. ✅ Set `AI_MODE=live` in docker-compose.yml
-2. ✅ Add valid `GEMINI_API_KEY`
-3. ✅ Test all endpoints in staging
-4. ✅ Monitor token usage
-5. ✅ Set up error alerts
-
-#### Switching to Live Mode
-
-**Step 1:** Update `docker-compose.yml`
-```yaml
-environment:
-  AI_MODE: live
-  GEMINI_API_KEY: AIzaSy...your-key-here
-```
-
-**Step 2:** Rebuild containers
-```bash
-docker-compose up -d --build backend
-```
-
-**Step 3:** Verify
-```bash
-# Check logs for "AI_MODE: live"
-docker logs hr_backend | grep AI_MODE
-```
+See [DEPLOYMENT.md](c:/Myprojects/HiveDesk/backend/DEPLOYMENT.md) for detailed production deployment guide including:
+- Cloud platform setup (Render, Railway, Fly.io)
+- Environment configuration
+- Database migration strategy
+- Security best practices
 
 ---
 
-### 📝 Frontend Integration Notes
+## 🛠️ Tech Stack
 
-#### API Response Structure
-
-All AI endpoints return consistent structure:
-
-**Success:**
-```json
-{
-  "success": true,
-  "answer": "AI generated response",
-  "confidence": 0.95
-}
-```
-
-**Error:**
-```json
-{
-  "success": false,
-  "error": "Error message"
-}
-```
-
-#### Error Handling
-
-```javascript
-try {
-  const response = await fetch('/api/assistant/hr/ask', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ query: userQuestion })
-  });
-  
-  const data = await response.json();
-  
-  if (!data.success) {
-    console.error('AI Error:', data.error);
-    // Show user-friendly error message
-  }
-  
-  return data.answer;
-} catch (error) {
-  console.error('Network error:', error);
-}
-```
-
----
-
-### 🎯 AI Features Status
-
-| Feature | Status | Mock Mode | Live Mode |
-|---------|--------|-----------|-----------|
-| HR Assistant | ✅ Operational | ✅ Free | ✅ 512 tokens |
-| Employee Chat | ✅ Operational | ✅ Free | ✅ 512 tokens |
-| Onboarding Status | ✅ Operational | ✅ Free | ✅ 512 tokens |
-| Status Refresh | ✅ Operational | ✅ Free | ✅ 512 tokens |
-| Request Caching | ✅ Enabled | N/A | ✅ Auto |
+| Category | Technology |
+|----------|-----------|
+| **Framework** | FastAPI 0.104.1 |
+| **Database** | PostgreSQL 15 + SQLModel + Alembic |
+| **AI/ML** | Google Gemini 1.5 Flash |
+| **Auth** | JWT (python-jose) + bcrypt |
+| **OCR** | Tesseract + pdf2image |
+| **Deployment** | Docker + Docker Compose |
+| **Python** | 3.11 (async/await) |
 
 ---
 
 ## 📄 License
 
-Private project - All rights reserved
+MIT License - Built for hackathon showcase
 
 ---
 
-Built with ❤️ by HiveDesk Team | AI-Powered 🤖
+## 🤝 Contributing
+
+This is a hackathon project. For issues or suggestions, please open an issue.
+
+---
+
