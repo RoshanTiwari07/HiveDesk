@@ -132,6 +132,15 @@ async def root():
     }
 
 
+# Scalar health check endpoint (for Render deployment)
+@app.get("/scalar", tags=["Health"])
+async def scalar_health():
+    """
+    Health check endpoint for Render
+    """
+    return {"status": "ok"}
+
+
 # Application entry point
 if __name__ == "__main__":
     import uvicorn
