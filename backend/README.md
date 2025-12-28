@@ -210,7 +210,7 @@ Once running, explore the interactive API documentation:
 ```
 1. POST /api/auth/login → Get JWT token
 2. Use token in Authorization: Bearer <token>
-3. Explore endpoints in /scalar or /docs
+3. Explore endpoints in /docs
 ```
 
 ---

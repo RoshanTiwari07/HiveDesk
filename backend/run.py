@@ -66,8 +66,8 @@ async def startup():
     await create_default_users()
 
 if __name__ == "__main__":
-    # Create database tables
-    asyncio.run(startup())
+    # Database initialization happens in app startup event
+    # No need to run it here to avoid event loop conflicts
     
     # Start the server
     print("Starting FastAPI server...")
