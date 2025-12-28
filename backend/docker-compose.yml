@@ -29,12 +29,12 @@ services:
     container_name: hr_backend
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:roshan@postgres:5432/hr_onboarding_system
-      SECRET_KEY: your-super-secret-key-for-docker-deployment
+      SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-for-docker-deployment}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 1440  # 24 hours (1440 minutes)
       # AI Configuration - Set to "mock" to avoid token usage during testing
-      AI_MODE: mock
-      # GEMINI_API_KEY: your-api-key-here  # Uncomment when you have a valid key
+      AI_MODE: ${AI_MODE:-mock}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}  # Load from environment
     ports:
       - "8000:8000"
     volumes:
