@@ -31,9 +31,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
-        # Add your production frontend URL here when deploying
-        # "https://your-app.vercel.app",
-        # "https://your-custom-domain.com"
+        "https://curious-granita-5ca577.netlify.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
