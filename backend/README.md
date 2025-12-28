@@ -242,17 +242,336 @@ docker-compose down -v
 
 ---
 
-## 🚀 Production Deployment
+## 🚀 Deploy to Render (Production)
 
-See [DEPLOYMENT.md](c:/Myprojects/HiveDesk/backend/DEPLOYMENT.md) for detailed production deployment guide including:
-- Cloud platform setup (Render, Railway, Fly.io)
-- Environment configuration
-- Database migration strategy
-- Security best practices
+### **Step 1: Create Render Account**
+Sign up at [render.com](https://render.com) (free tier available)
+
+### **Step 2: Create PostgreSQL Database**
+1. Go to Render Dashboard → New → PostgreSQL
+2. Name: `hivedesk-db`
+3. Copy the **Internal Database URL** (starts with `postgresql://`)
+
+### **Step 3: Create Web Service**
+1. New → Web Service
+2. Connect your GitHub repo
+3. Configure:
+   - **Name**: `hivedesk-backend`
+   - **Region**: Choose closest to you
+   - **Branch**: `main` or `master`
+   - **Root Directory**: `backend`
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `python run.py`
+
+### **Step 4: Set Environment Variables**
+Add these in Render Dashboard → Environment:
+
+```env
+DATABASE_URL=<paste-internal-database-url-from-step-2>
+SECRET_KEY=<generate-with: python -c "import secrets; print(secrets.token_hex(32))">
+GEMINI_API_KEY=<your-gemini-api-key>
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+PYTHON_VERSION=3.11.0
+```
+
+### **Step 5: Deploy**
+Click "Create Web Service" → Render auto-deploys!
+
+### **Step 6: Update Frontend CORS**
+Once deployed, add your Render URL to [main.py](c:/Myprojects/HiveDesk/backend/app/main.py#L28):
+```python
+allow_origins=[
+    "http://localhost:5173",
+    "https://your-render-app.onrender.com"  # Add this
+]
+```
+
+### **Your API will be live at:**
+`https://hivedesk-backend.onrender.com`
 
 ---
 
-## 🛠️ Tech Stack
+### **Alternative: Deploy with Docker on Render**
+If you prefer Docker:
+- **Dockerfile Path**: `backend/Dockerfile`
+- No build/start commands needed
+- Render auto-detects and uses Dockerfile
+
+---
+
+## 🎯 **Quick Render Troubleshooting**
+
+| Issue | Solution |
+|-------|----------|
+| Port error | Render auto-sets `PORT` env var (already handled in code) |
+| Database connection fails | Use **Internal Database URL**, not External |
+| Build fails | Check `requirements.txt` is in `backend/` folder |
+| Health check fails | Render pings `/` - add health endpoint if needed |
+
+---
+
+## � Common Issues & Solutions
+
+### **🔴 CRITICAL: Database Schema Mismatch**
+**Error:** `column users.onboarding_status does not exist`
+
+**Cause:** Old database doesn't have new columns from code updates
+
+**Solution:**
+```bash
+# Reset database (deletes all data!)
+docker-compose down -v
+docker-compose up --build -d
+```
+
+---
+
+### **🟡 Backend Won't Start**
+
+#### **Issue: Port 8000 already in use**
+```
+Error: bind: address already in use
+```
+**Solution:**
+```bash
+# Find and kill process using port 8000
+# Windows:
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+
+# Linux/Mac:
+lsof -i :8000
+kill -9 <PID>
+```
+
+#### **Issue: Port 5434 already in use (PostgreSQL)**
+**Solution:**
+```bash
+# Change port in docker-compose.yml
+ports:
+  - "5435:5432"  # Use different port
+
+# Update DATABASE_URL in .env
+DATABASE_URL=postgresql+asyncpg://postgres:roshan@localhost:5435/hr_onboarding_system
+```
+
+---
+
+### **🟡 Database Connection Failed**
+
+#### **Error:** `could not connect to server`
+**Cause:** PostgreSQL container not running or wrong credentials
+
+**Solution:**
+```bash
+# Check if postgres is running
+docker-compose ps
+
+# View postgres logs
+docker-compose logs postgres
+
+# Restart postgres
+docker-compose restart postgres
+
+# Verify DATABASE_URL matches docker-compose.yml credentials
+```
+
+---
+
+### **🟡 Environment Variables Not Loading**
+
+#### **Error:** `GEMINI_API_KEY not found in environment`
+**Cause:** .env file missing or not in correct location
+
+**Solution:**
+```bash
+# Check .env exists in backend/ folder
+ls backend/.env
+
+# Verify .env format (no quotes around values)
+# ✅ Correct:
+GEMINI_API_KEY=AIzaSyC...
+
+# ❌ Wrong:
+GEMINI_API_KEY="AIzaSyC..."
+
+# Restart containers to reload .env
+docker-compose down
+docker-compose up -d
+```
+
+---
+
+### **🟡 AI Features Not Working**
+
+#### **Error:** API calls failing or returning mock data
+**Possible causes:**
+
+1. **Invalid API Key**
+   - Get new key: https://aistudio.google.com/apikey
+   - Update in `.env`
+
+2. **API Quota Exceeded**
+   - Check quota: https://aistudio.google.com/
+   - Wait for reset or upgrade plan
+   - Or use mock mode: `AI_MODE=mock` in `.env`
+
+3. **Network Issues**
+   - Check internet connection
+   - Fallback to mock mode automatically (already configured)
+
+---
+
+### **🟡 Docker Build Failures**
+
+#### **Error:** `failed to solve with frontend dockerfile.v0`
+**Solution:**
+```bash
+# Clear Docker cache
+docker system prune -a
+docker-compose build --no-cache
+```
+
+#### **Error:** `requirements.txt not found`
+**Solution:**
+```bash
+# Ensure you're in correct directory
+cd backend
+docker-compose up --build
+```
+
+---
+
+### **🟡 CORS Errors (Frontend Can't Connect)**
+
+#### **Error:** `Access to fetch blocked by CORS policy`
+**Cause:** Frontend URL not in allowed origins
+
+**Solution:**
+Edit [app/main.py](c:/Myprojects/HiveDesk/backend/app/main.py#L28):
+```python
+allow_origins=[
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://your-frontend-url.com"  # Add your URL
+]
+```
+
+---
+
+### **🟡 File Upload Errors**
+
+#### **Error:** `File size exceeds maximum`
+**Solution:**
+Increase limit in `.env`:
+```env
+MAX_FILE_SIZE=20971520  # 20MB
+```
+
+#### **Error:** `uploads directory not found`
+**Solution:**
+```bash
+# Create uploads directory
+mkdir uploads
+chmod 755 uploads
+
+# Or rebuild Docker
+docker-compose up --build
+```
+
+---
+
+### **🟡 Migration Issues**
+
+#### **Error:** `Target database is not up to date`
+**Solution:**
+```bash
+# Run migrations manually
+docker-compose exec backend alembic upgrade head
+
+# Or reset database completely
+docker-compose down -v
+docker-compose up --build -d
+```
+
+---
+
+### **🔧 Debugging Commands**
+
+```bash
+# View all container logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f backend
+docker-compose logs -f postgres
+
+# Access backend container shell
+docker-compose exec backend bash
+
+# Access database
+docker-compose exec postgres psql -U postgres -d hr_onboarding_system
+
+# Check database tables
+docker-compose exec postgres psql -U postgres -d hr_onboarding_system -c "\dt"
+
+# Restart specific service
+docker-compose restart backend
+
+# Check container status
+docker-compose ps
+
+# View resource usage
+docker stats
+
+# Complete cleanup (removes everything)
+docker-compose down -v
+docker system prune -a
+```
+
+---
+
+### **🚨 Emergency Reset (Nuclear Option)**
+
+If nothing works, complete fresh start:
+```bash
+# 1. Stop everything
+docker-compose down -v
+
+# 2. Remove all Docker resources
+docker system prune -a -f
+docker volume prune -f
+
+# 3. Delete uploads
+rm -rf uploads/*
+
+# 4. Rebuild from scratch
+docker-compose up --build -d
+
+# 5. Check logs
+docker-compose logs -f
+```
+
+---
+
+### **💡 Quick Health Check**
+
+```bash
+# Test if backend is running
+curl http://localhost:8000/scalar
+
+# Test database connection
+docker-compose exec backend python -c "from app.database import AsyncSessionLocal; import asyncio; asyncio.run(AsyncSessionLocal().__aenter__())"
+
+# Test environment variables
+docker-compose exec backend python -c "import os; print('SECRET_KEY:', bool(os.getenv('SECRET_KEY'))); print('GEMINI_API_KEY:', bool(os.getenv('GEMINI_API_KEY')))"
+```
+
+---
+
+## �🛠️ Tech Stack
 
 | Category | Technology |
 |----------|-----------|

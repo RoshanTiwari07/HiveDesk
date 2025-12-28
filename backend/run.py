@@ -71,10 +71,14 @@ if __name__ == "__main__":
     
     # Start the server
     print("Starting FastAPI server...")
+    
+    # Get port from environment (for cloud platforms like Render, Railway)
+    port = int(os.getenv("PORT", 8000))
+    
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
-        reload=True,
+        port=port,
+        reload=False,  # Disable reload in production
         log_level="info"
     )
