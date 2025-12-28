@@ -32,7 +32,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH=/root/.local/bin:$PATH
 
-# Copy Python packages from builder (no apt-get needed)
+# Install runtime dependencies for AI document processing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
 COPY --from=builder /root/.local /root/.local
 
 # Copy application code

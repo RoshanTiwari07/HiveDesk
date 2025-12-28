@@ -6,7 +6,7 @@ from typing import Optional, List
 from datetime import datetime
 import uuid
 
-from ..core.enums import UserRole
+from ..core.enums import UserRole, OnboardingStatus
 
 
 class UserModel(SQLModel, table=True):
@@ -21,6 +21,12 @@ class UserModel(SQLModel, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Onboarding fields
+    onboarding_status: OnboardingStatus = Field(default=OnboardingStatus.NOT_STARTED)
+    onboarding_started_at: Optional[datetime] = None
+    onboarding_completed_at: Optional[datetime] = None
+    onboarding_notes: Optional[str] = None
     
     # Simplified relationships - only the ones that don't cause conflicts
     created_tasks: List["TaskModel"] = Relationship(back_populates="creator")

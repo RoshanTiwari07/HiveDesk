@@ -31,14 +31,31 @@ export const USER_ROLES = {
   MANAGER: 'manager'
 };
 
-// Document Types
+// Document Types (aligned with backend)
 export const DOCUMENT_TYPES = {
-  PASSPORT: 'passport',
-  DRIVER_LICENSE: 'driver_license',
+  AADHAAR: 'aadhaar',
+  PAN: 'pan',
   RESUME: 'resume',
-  DEGREE: 'degree',
-  CONTRACT: 'contract',
-  OTHER: 'other'
+  OFFER_LETTER: 'offer_letter',
+  PF_FORM: 'pf_form',
+  PHOTO: 'photo'
+};
+
+// Document Type Labels
+export const DOCUMENT_TYPE_LABELS = {
+  aadhaar: 'Aadhaar Card',
+  pan: 'PAN Card',
+  resume: 'Resume/CV',
+  offer_letter: 'Offer Letter',
+  pf_form: 'PF Form',
+  photo: 'Employee Photo'
+};
+
+// Document Status
+export const DOCUMENT_STATUS = {
+  PENDING: 'pending',
+  VERIFIED: 'verified',
+  REJECTED: 'rejected'
 };
 
 // Task Status

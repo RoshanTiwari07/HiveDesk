@@ -3,11 +3,15 @@ Documents Router - Document upload and management endpoints
 """
 from typing import Optional
 from pathlib import Path
-from fastapi import APIRouter, Depends, UploadFile, File, Form
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+import json
 
 from ..core.dependencies import SessionDep, CurrentUserDep
 from ..services.document_service import DocumentService
 from ..schemas.document import DocumentUploadResponseSchema
+from ..models.document import DocumentModel
+from ..core.enums import UserRole
+from sqlmodel import select
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
 
@@ -65,3 +69,42 @@ async def upload_document(
         message="Document uploaded successfully",
         document_id=document.id
     )
+
+
+@router.get("/{document_id}/ai-analysis")
+async def get_document_ai_analysis(
+    document_id: str,
+    session: SessionDep,
+    current_user: CurrentUserDep
+):
+    """Get AI analysis results for a document"""
+    
+    # Get document
+    result = await session.execute(
+        select(DocumentModel).where(DocumentModel.id == document_id)
+    )
+    document = result.scalar_one_or_none()
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Check permissions (employee can see own, HR can see all)
+    if current_user.role != UserRole.HR and document.employee_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Return AI analysis
+    ai_result = {}
+    if document.ai_validation_result:
+        try:
+            ai_result = json.loads(document.ai_validation_result)
+        except:
+            ai_result = {}
+    
+    return {
+        "document_id": document.id,
+        "document_type": document.document_type.value,
+        "extracted_text": document.extracted_text,
+        "ai_analysis": ai_result,
+        "confidence_score": document.ai_confidence_score,
+        "processed_at": document.ai_processed_at
+    }

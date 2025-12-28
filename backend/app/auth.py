@@ -84,14 +84,14 @@ async def get_current_user(
     token = credentials.credentials
     payload = verify_token(token)
     
-    user_id: str = payload.get("sub")
-    if user_id is None:
+    email: str = payload.get("sub")
+    if email is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials"
         )
     
-    statement = select(UserModel).where(UserModel.id == user_id, UserModel.is_active == True)
+    statement = select(UserModel).where(UserModel.email == email, UserModel.is_active == True)
     result = await session.execute(statement)
     user = result.scalar_one_or_none()
     

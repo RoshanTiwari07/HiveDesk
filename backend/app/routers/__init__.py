@@ -8,6 +8,8 @@ from .documents import router as documents_router
 from .training import router as training_router
 from .performance import router as performance_router
 from .dashboard import router as dashboard_router
+from .onboarding import router as onboarding_router
+from .assistants import router as assistants_router
 
 __all__ = [
     "auth_router",
@@ -17,4 +19,6 @@ __all__ = [
     "training_router",
     "performance_router",
     "dashboard_router",
+    "onboarding_router",
+    "assistants_router",
 ]

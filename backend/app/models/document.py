@@ -27,5 +27,11 @@ class DocumentModel(SQLModel, table=True):
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
     task_id: Optional[str] = Field(foreign_key="tasks.id")
     
+    # AI fields
+    extracted_text: Optional[str] = Field(default=None)
+    ai_validation_result: Optional[str] = Field(default=None)
+    ai_confidence_score: Optional[float] = Field(default=None)
+    ai_processed_at: Optional[datetime] = Field(default=None)
+    
     # Simplified relationships
     related_task: Optional["TaskModel"] = Relationship(back_populates="documents")

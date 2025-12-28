@@ -10,6 +10,7 @@ import aiofiles
 
 from ..models.document import DocumentModel
 from ..core.enums import DocumentType, VerificationStatus
+from .ai_document_service import AIDocumentService
 
 
 class DocumentService:
@@ -17,6 +18,7 @@ class DocumentService:
     
     def __init__(self, upload_dir: Path):
         self.upload_dir = upload_dir
+        self.ai_service = AIDocumentService()
     
     async def get_all_documents(
         self,
@@ -111,6 +113,12 @@ class DocumentService:
         session.add(document)
         await session.commit()
         await session.refresh(document)
+        
+        # Process with AI asynchronously
+        try:
+            document = await self.ai_service.process_document(document, session)
+        except Exception as e:
+            print(f"AI processing failed for document {document.id}: {e}")
         
         return document
     

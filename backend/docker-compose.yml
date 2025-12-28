@@ -32,6 +32,9 @@ services:
       SECRET_KEY: your-super-secret-key-for-docker-deployment
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      # AI Configuration - Set to "mock" to avoid token usage during testing
+      AI_MODE: mock
+      # GEMINI_API_KEY: your-api-key-here  # Uncomment when you have a valid key
     ports:
       - "8000:8000"
     volumes:

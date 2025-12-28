@@ -20,3 +20,10 @@ aiofiles==23.2.1
 # Configuration & Validation
 python-dotenv==1.0.0
 pydantic[email]==2.5.0
+# AI & Document Processing
+google-generativeai==0.8.3
+PyPDF2==3.0.1
+pillow==10.4.0
+pytesseract==0.3.13
+pdf2image==1.17.0
+psycopg2-binary==2.9.9

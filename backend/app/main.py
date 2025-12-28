@@ -13,7 +13,9 @@ from .routers import (
     tasks_router,
     documents_router,
     training_router,
-    performance_router
+    performance_router,
+    onboarding_router,
+    assistants_router
 )
 
 # Create FastAPI app
@@ -40,6 +42,8 @@ app.include_router(tasks_router)
 app.include_router(documents_router)
 app.include_router(training_router)
 app.include_router(performance_router)
+app.include_router(onboarding_router)
+app.include_router(assistants_router)
 
 
 # Startup event - Database initialization
